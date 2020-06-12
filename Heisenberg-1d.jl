@@ -134,23 +134,25 @@ function calcfac(S::F,Sz_cre::F,Sz_ani::F) where{F<:Float64}
     sqrt( (S*(S+1.0) - Sz_cre*(Sz_cre+1.0)) * (S*(S+1.0) - Sz_ani*(Sz_ani-1.0)))
 end
    
-function neighbor(dif::IT,N::Int64) where{IT<:Array{Int64,1}} 
+function neighbor(ret::IA,dif::IA,N::Int64) where{IA<:Array{Int64,1}} 
     ij = Int64[ ]
     for i=1:length(dif)
         if dif[i] != 0
             push!(ij,i)
         end
     end
-    TF=0;cre=0;ani=0
-    if abs(ij[1]-ij[2])==1 
+    if abs(ij[1]-ij[2])== 1
         if dif[ij[1]] == 1
-            TF=1;cre= ij[1]; ani=ij[2]            
+            ret[1]= 1; ret[2]=ij[1]; ret[3]=ij[2]
         else
-            TF=1;cre= ij[2]; ani=ij[1]
+            ret[1]= 1; ret[3]=ij[1]; ret[2]=ij[2]
         end
+    else
+        ret[1]=0 ; ret[2]=0; ret[3]=0
     end
-    return TF,cre,ani
+    nothing
 end
+
 function neighborPBC(ret::IA,dif::IA,N::Int64) where{IA<:Array{Int64,1}} 
     ij = Int64[ ]
     for i=1:length(dif)
@@ -175,8 +177,7 @@ function connectable(tf::IT,dif::IT) where{IT<:Array{Int64,1}}
     nothing 
 end
 
-function main(t::F,U::F,S::F,N::Int64,numstate::Int64,
-              PBC::Int64) where{F<:Float64,B<:Bool}
+function main(t::F,U::F,S::F,N::I,numstate::I,PBC::I) where{F<:Float64,I<:Int64}
     basisvec = makeV(S,N); println("Full Dim.=",length(basisvec))
     
     Slist = [ i for i=-S*N:1.0:S*N]
@@ -232,21 +233,21 @@ function run()
     t = parsed_args["t"]; S = parsed_args["S"];N = parsed_args["N"]
     nums = parsed_args["nums"]; PBC = parsed_args["PBC"]
     U = t  # (for debug) This must be identical in the 1D Heisenberg Hamiltonian"
-    main(t,U,S,N,nums,PBC)
+    @time main(t,U,S,N,nums,PBC)
 end
 
 
 s = ArgParseSettings()
 @add_arg_table! s begin
-    "-t"
+    "--t"
         help = "coefficient in the 1D Heisenberg Hamiltonian"
         arg_type = Float64
         default = 1.0
-    "-S"
+    "--S"
         help = "Spin (in FLoat) 0.5(S=1/2), 1.0 (S=1), etc."
         arg_type = Float64
         default = 0.5
-    "-N"
+    "--N"
         help = "particle number N"
         arg_type = Int64
         default = 10
@@ -256,8 +257,9 @@ s = ArgParseSettings()
         default = 1
     "--PBC"
         help = "Periodic Boundary Condition 1:true 0:false"
+        arg_type = Int64
         default = 1 
 end
 
 parsed_args = parse_args(s)
-@time run()
+run()
